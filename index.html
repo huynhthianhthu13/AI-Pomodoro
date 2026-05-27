@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anh Thu - Trạm Học Tập Pomodoro AI</title>
+  
+  <!-- Tailwind CSS cho Giao diện Dark-Mode tuyệt đẹp -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM từ CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel để dịch JSX trực tiếp trong trình duyệt -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @keyframes bounce-short {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .animate-bounce-short {
+      animation: bounce-short 2s infinite;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen selection:bg-purple-500/30 selection:text-purple-300">
+
+  <!-- Vùng chứa ứng dụng React -->
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ================= SVG ICONS DIRECT REPLACEMENT =================
+    // Sử dụng component SVG giúp giao diện chạy siêu nhanh, không phụ thuộc vào tải CDN ngoài.
+    const Icons = {
+      Sparkles: () => (
+        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
+      Settings: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      MessageSquare: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+      LogOut: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 01-3-3h4a3 3 0 013 3v1" />
+        </svg>
+      ),
+      Plus: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      ),
+      Trash2: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      ),
+      Volume2: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+      ),
+      Play: () => (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      ),
+      Pause: () => (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        </svg>
+      ),
+      RotateCcw: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+        </svg>
+      ),
+      BookOpen: () => (
+        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      ),
+      Check: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+      Camera: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      X: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      ),
+      AlertTriangle: () => (
+        <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+      BrainCircuit: () => (
+        <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      Grid3x3: () => (
+        <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      ),
+      Crosshair: () => (
+        <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15 0a6 6 0 11-12 0 6 6 0 0112 0z" />
+        </svg>
+      ),
+      Palette: () => (
+        <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        </svg>
+      ),
+      Activity: () => (
+        <svg className="w-12 h-12 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      Paperclip: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+      ),
+      Send: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      ),
+      Award: () => (
+        <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      ),
+      HelpCircle: () => (
+        <svg className="w-10 h-10 text-purple-500/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    };
+
+    // ================= CẤU HÌNH & HẰNG SỐ =================
+    const FOCUS_TIME = 25 * 60; // 25 phút mặc định
+    const BREAK_TIME = 5 * 60;  // 5 phút mặc định
+
+    const AMBIENT_SOUNDS = [
+      { id: 'off', name: 'Yên lặng', type: 'none' },
+      { id: 'rain', name: 'Mưa rơi nhẹ', type: 'synth-rain' },
+      { id: 'waves', name: 'Sóng biển rì rào', type: 'synth-waves' },
+      { id: 'binaural', name: 'Sóng não tập trung (Binaural)', type: 'synth-binaural' },
+    ];
+
+    const RIDDLES = [
+      { q: "Cái gì đen khi mua, đỏ khi dùng và xám xịt khi vứt đi?", options: ["Than", "Củi", "Sắt", "Nhựa"], a: "Than" },
+      { q: "Cái gì có thể đi khắp thế gian mà chỉ ở nguyên một góc?", options: ["Cơn gió", "Tem thư", "Đám mây", "Mặt trăng"], a: "Tem thư" },
+      { q: "Tôi có nhiều răng nhưng không bao giờ cắn ai. Tôi là ai?", options: ["Bàn chải", "Cá mập đồ chơi", "Cái lược", "Cái cưa"], a: "Cái lược" },
+      { q: "Càng lau sạch nó lại càng đen. Nó là cái gì?", options: ["Vết dầu loang", "Bảng viết", "Lốp xe", "Bóng tối"], a: "Bảng viết" },
+      { q: "Cái gì chứa nhiều nước nhất nhưng không có một giọt nào trong thực tế?", options: ["Bản đồ", "Bình rỗng", "Đám mây", "Sa mạc"], a: "Bản đồ" }
+    ];
+
+    const OFFLINE_BOT_RESPONSES = [
+      "Tuyệt vời! Bạn đang làm rất tốt, hãy giữ vững sự tập trung nhé! 💪",
+      "Nếu gặp bài toán khó, hãy thử chia nhỏ nó ra và giải quyết từng bước một.",
+      "Hãy nhớ uống một ngụm nước ấm để giữ cho tinh thần luôn tỉnh táo nha! 💧",
+      "Học tập là một hành trình dài, một hiệp Pomodoro chất lượng đáng giá hơn cả ngày học uể oải.",
+      "Bạn có biết? Tập trung cao độ 25 phút giúp não bộ ghi nhớ thông tin tốt hơn gấp 2 lần đấy!",
+      "Hít thở sâu 3 nhịp và tiếp tục chinh phục mục tiêu nào! 🧘‍♂️"
+    ];
+
+    // ================= BỘ PHÁT ÂM THANH SYNTHETIC (Web Audio API) =================
+    class AudioSynthManager {
+      constructor() {
+        this.audioCtx = null;
+        this.noiseNode = null;
+        this.filterNode = null;
+        this.gainNode = null;
+        this.osc1 = null;
+        this.osc2 = null;
+        this.waveInterval = null;
+      }
+
+      init() {
+        if (!this.audioCtx) {
+          this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+      }
+
+      stopAll() {
+        if (this.noiseNode) { try { this.noiseNode.stop(); } catch(e){} this.noiseNode = null; }
+        if (this.osc1) { try { this.osc1.stop(); } catch(e){} this.osc1 = null; }
+        if (this.osc2) { try { this.osc2.stop(); } catch(e){} this.osc2 = null; }
+        if (this.waveInterval) { clearInterval(this.waveInterval); this.waveInterval = null; }
+      }
+
+      playRain() {
+        this.init();
+        this.stopAll();
+
+        const bufferSize = 2 * this.audioCtx.sampleRate;
+        const noiseBuffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        this.noiseNode = this.audioCtx.createBufferSource();
+        this.noiseNode.buffer = noiseBuffer;
+        this.noiseNode.loop = true;
+
+        this.filterNode = this.audioCtx.createBiquadFilter();
+        this.filterNode.type = 'lowpass';
+        this.filterNode.frequency.value = 1100;
+
+        this.gainNode = this.audioCtx.createGain();
+        this.gainNode.gain.value = 0.12;
+
+        this.noiseNode.connect(this.filterNode);
+        this.filterNode.connect(this.gainNode);
+        this.gainNode.connect(this.audioCtx.destination);
+
+        this.noiseNode.start();
+      }
+
+      playWaves() {
+        this.init();
+        this.stopAll();
+
+        const bufferSize = 2 * this.audioCtx.sampleRate;
+        const noiseBuffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        this.noiseNode = this.audioCtx.createBufferSource();
+        this.noiseNode.buffer = noiseBuffer;
+        this.noiseNode.loop = true;
+
+        this.filterNode = this.audioCtx.createBiquadFilter();
+        this.filterNode.type = 'bandpass';
+        this.filterNode.frequency.value = 350;
+        this.filterNode.Q.value = 1.0;
+
+        this.gainNode = this.audioCtx.createGain();
+        this.gainNode.gain.value = 0.08;
+
+        this.noiseNode.connect(this.filterNode);
+        this.filterNode.connect(this.gainNode);
+        this.gainNode.connect(this.audioCtx.destination);
+        this.noiseNode.start();
+
+        let up = true;
+        this.waveInterval = setInterval(() => {
+          if (!this.audioCtx || !this.filterNode || !this.gainNode) return;
+          const t = this.audioCtx.currentTime;
+          if (up) {
+            this.filterNode.frequency.linearRampToValueAtTime(600, t + 4);
+            this.gainNode.gain.linearRampToValueAtTime(0.20, t + 4);
+          } else {
+            this.filterNode.frequency.linearRampToValueAtTime(220, t + 4);
+            this.gainNode.gain.linearRampToValueAtTime(0.04, t + 4);
+          }
+          up = !up;
+        }, 4000);
+      }
+
+      playBinaural() {
+        this.init();
+        this.stopAll();
+
+        const merger = this.audioCtx.createChannelMerger(2);
+
+        this.osc1 = this.audioCtx.createOscillator();
+        this.osc1.type = 'sine';
+        this.osc1.frequency.value = 100; // Tai trái 100Hz
+
+        this.osc2 = this.audioCtx.createOscillator();
+        this.osc2.type = 'sine';
+        this.osc2.frequency.value = 110; // Tai phải 110Hz -> lệch 10Hz Alpha
+
+        const g1 = this.audioCtx.createGain();
+        const g2 = this.audioCtx.createGain();
+        g1.gain.value = 0.12;
+        g2.gain.value = 0.12;
+
+        this.osc1.connect(g1).connect(merger, 0, 0);
+        this.osc2.connect(g2).connect(merger, 0, 1);
+
+        this.gainNode = this.audioCtx.createGain();
+        this.gainNode.gain.value = 0.4;
+
+        merger.connect(this.gainNode).connect(this.audioCtx.destination);
+
+        this.osc1.start();
+        this.osc2.start();
+      }
+    }
+
+    const synthManager = new AudioSynthManager();
+
+    // ================= HELPER FUNCTIONS =================
+    const fileToBase64 = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+    };
+
+    // Gọi Gemini API sử dụng model mặc định (gemini-2.5-flash-preview-09-2025)
+    const callGeminiAPI = async (apiKey, promptText, imageBase64, pdfBase64, isJson = false) => {
+      // const modelName = 'gemini-2.5-flash-preview-09-2025';
+      // const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+
+const modelName = "gemini-2.5-flash"; // Thay cho bản preview bị lỗi cũ
+// apiKey = "AIzaSyBvf3v54DOA0zH7-1q9KIHOaEv3mGWF2Ag"; // Điền API Key của bạn vào đây
+
+const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+
+
+      let contentsParts = [{ text: promptText }];
+
+      if (imageBase64) {
+        contentsParts.push({
+          inlineData: { mimeType: "image/png", data: imageBase64 }
+        });
+      } else if (pdfBase64) {
+        contentsParts.push({
+          inlineData: { mimeType: "application/pdf", data: pdfBase64 }
+        });
+      }
+
+      const payload = {
+        contents: [{ parts: contentsParts }]
+      };
+
+      if (isJson) {
+        payload.generationConfig = {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              pass: { type: "BOOLEAN" },
+              reason: { type: "STRING" }
+            },
+            required: ["pass", "reason"]
+          }
+        };
+      } else {
+        payload.systemInstruction = {
+          parts: [{
+            text: "Bạn là Trợ lý Học tập Pomodoro AI thông thái, tận tâm và thân thiện. Hãy giúp đỡ học sinh trả lời câu hỏi bài tập, giải bài hoặc tạo động lực học tập bằng tiếng Việt trôi chảy. Hãy giữ phong cách ngắn gọn nhưng sâu sắc."
+          }]
+        };
+      }
+
+      // Triển khai Exponential Backoff (tối đa 5 lượt gọi thử)
+      let retries = 5;
+      let delay = 1000;
+      while (retries > 0) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || response.statusText);
+          }
+          
+          const data = await response.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        } catch (err) {
+          retries--;
+          if (retries === 0) throw err;
+          await new Promise(res => setTimeout(res, delay));
+          delay *= 2;
+        }
+      }
+    };
+
+    // ================= COMPONENT TOAST (Thông báo tùy chỉnh) =================
+    const Toast = ({ message, type, onClose }) => {
+      useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+      }, [onClose]);
+
+      return (
+        <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border transition-all duration-300 transform animate-bounce-short ${
+          type === 'success' ? 'bg-emerald-950 border-emerald-500/40 text-emerald-400' :
+          type === 'error' ? 'bg-rose-950 border-rose-500/40 text-rose-400' :
+          'bg-blue-950 border-blue-500/40 text-blue-400'
+        }`}>
+          <span className="text-sm font-semibold">{message}</span>
+          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition ml-2">
+            <Icons.X />
+          </button>
+        </div>
+      );
+    };
+
+    // ================= WEBCAM MODAL =================
+    const WebcamModal = ({ isOpen, onClose, onCapture }) => {
+      const videoRef = useRef(null);
+      const streamRef = useRef(null);
+      const [loading, setLoading] = useState(true);
+      const [errorMsg, setErrorMsg] = useState(null);
+
+      useEffect(() => {
+        if (!isOpen) return;
+        setLoading(true);
+        setErrorMsg(null);
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+          .then(stream => {
+            streamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+            setLoading(false);
+          })
+          .catch(err => {
+            console.error(err);
+            setErrorMsg("Không tìm thấy camera hoặc quyền truy cập bị từ chối.");
+            setLoading(false);
+          });
+
+        return () => {
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+          }
+        };
+      }, [isOpen]);
+
+      const capture = () => {
+        if (!videoRef.current) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth || 640;
+        canvas.height = videoRef.current.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        onCapture(canvas.toDataURL('image/png'));
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-gray-900 border border-purple-500/30 rounded-3xl p-5 max-w-md w-full flex flex-col items-center shadow-2xl">
+            <h3 className="text-lg font-black text-white mb-3 tracking-wide flex items-center gap-2">
+              <Icons.Camera /> CHỤP ẢNH MINH CHỨNG
+            </h3>
+
+            <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative border border-gray-800 mb-5">
+              {loading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400">
+                  <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs">Đang mở camera...</span>
+                </div>
+              )}
+              {errorMsg && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-red-400">
+                  <span className="text-xs font-semibold">{errorMsg}</span>
+                </div>
+              )}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${loading || errorMsg ? 'opacity-0' : 'opacity-100'}`}
+              />
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 rounded-xl font-bold text-xs sm:text-sm transition border border-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={capture}
+                disabled={loading || !!errorMsg}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 disabled:text-gray-600 text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg flex justify-center items-center gap-2 transition transform hover:scale-[1.02]"
+              >
+                Chụp ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ================= COMPONENT XÁC NHẬN HỦY PHIÊN =================
+    const ConfirmDialog = ({ isOpen, onClose, onConfirm }) => {
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-gray-900 rounded-3xl p-6 max-w-sm w-full flex flex-col items-center shadow-2xl border border-red-900/50">
+            <div className="w-16 h-16 bg-red-950/40 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
+              <Icons.AlertTriangle />
+            </div>
+            <h3 className="text-xl font-black text-white mb-2 text-center tracking-wide">Bạn muốn dừng hiệp học?</h3>
+            <p className="text-gray-400 text-sm text-center mb-6 leading-relaxed">
+              Phiên học này sẽ bị <span className="text-red-400 font-bold">hủy bỏ</span> và bạn sẽ mất hết quyền truy cập trạm giải trí lúc này. Bạn chắc chắn chứ?
+            </p>
+            
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 rounded-xl font-bold text-sm transition"
+              >
+                Học tiếp
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm shadow-lg transition"
+              >
+                Đồng ý hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ================= CÁC TRÒ CHƠI GIẢI TRÍ MINI-GAMES =================
+    const RiddleGame = () => {
+      const [currentRiddle, setCurrentRiddle] = useState(RIDDLES[0]);
+      const [selected, setSelected] = useState(null);
+      const [isCorrect, setIsCorrect] = useState(null);
+
+      const nextRiddle = () => {
+        const next = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
+        setCurrentRiddle(next);
+        setSelected(null);
+        setIsCorrect(null);
+      };
+
+      const handleSelect = (option) => {
+        if (selected) return;
+        setSelected(option);
+        setIsCorrect(option === currentRiddle.a);
+      };
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-4 max-w-lg mx-auto w-full">
+          <h3 className="text-xl font-bold mb-2 text-yellow-400 flex items-center gap-2">
+            <Icons.BrainCircuit /> Đố vui Trắc nghiệm
+          </h3>
+          <p className="text-gray-400 mb-4 text-sm font-medium">Rèn luyện tư duy nhạy bén khi nghỉ ngơi!</p>
+         
+          <div className="bg-gray-900 p-5 rounded-3xl shadow-lg w-full flex flex-col justify-center border border-gray-800">
+            <p className="text-base sm:text-lg font-medium mb-5 leading-relaxed text-gray-200">"{currentRiddle.q}"</p>
+           
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-5">
+              {currentRiddle.options.map((opt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelect(opt)}
+                  disabled={selected !== null}
+                  className={`p-3 rounded-xl border text-sm font-bold transition ${
+                    selected === opt
+                      ? (isCorrect ? 'bg-emerald-950 border-emerald-500 text-emerald-400' : 'bg-rose-950 border-rose-500 text-rose-400')
+                      : selected !== null && opt === currentRiddle.a
+                        ? 'bg-emerald-950 border-emerald-500 text-emerald-400'
+                        : 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-300'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+
+            {selected && (
+              <div className="animate-fade-in mt-2 h-10">
+                <button onClick={nextRiddle} className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-full transition font-black text-xs uppercase tracking-wider">
+                  Câu tiếp theo
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const TicTacToe = () => {
+      const [board, setBoard] = useState(Array(9).fill(null));
+      const [isXNext, setIsXNext] = useState(true);
+     
+      const checkWinner = (squares) => {
+        const lines = [
+          [0,1,2],[3,4,5],[6,7,8],
+          [0,3,6],[1,4,7],[2,5,8],
+          [0,4,8],[2,4,6]
+        ];
+        for (let i = 0; i < lines.length; i++) {
+          const [a, b, c] = lines[i];
+          if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) return squares[a];
+        }
+        return null;
+      };
+
+      const winner = checkWinner(board);
+      const isDraw = !winner && board.every(s => s !== null);
+
+      const handleClick = (i) => {
+        if (board[i] || winner) return;
+        const newBoard = [...board];
+        newBoard[i] = isXNext ? 'X' : 'O';
+        setBoard(newBoard);
+        setIsXNext(!isXNext);
+      };
+
+      useEffect(() => {
+        if (!isXNext && !winner && !isDraw) {
+          const timeout = setTimeout(() => {
+            const emptyIndices = board.map((v, i) => v === null ? i : null).filter(v => v !== null);
+            if (emptyIndices.length > 0) {
+              const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+              handleClick(randomIndex);
+            }
+          }, 500);
+          return () => clearTimeout(timeout);
+        }
+      }, [isXNext, board, winner, isDraw]);
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-sm mx-auto p-4">
+          <h3 className="text-xl font-bold mb-3 text-cyan-400 flex items-center gap-2">
+            <Icons.Grid3x3 /> Cờ Caro (Vs Máy)
+          </h3>
+          <div className="mb-4 font-bold text-sm h-6">
+            {winner ? (
+              <span className={winner === 'X' ? 'text-emerald-400 animate-pulse' : 'text-rose-400'}>
+                {winner === 'X' ? 'Bạn thắng máy rồi!' : 'Máy thắng! Hãy cố gắng hơn nhé!'}
+              </span>
+            ) : isDraw ? (
+              <span className="text-yellow-400">Trận hòa kịch tính!</span>
+            ) : (
+              <span className="text-gray-400">Lượt: {isXNext ? 'Bạn (X)' : 'Máy (O)'}</span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2 bg-gray-900 p-3 rounded-2xl border border-gray-800 w-full aspect-square">
+            {board.map((cell, i) => (
+              <button
+                key={i}
+                onClick={() => isXNext && handleClick(i)}
+                disabled={!isXNext || !!winner || cell !== null}
+                className="bg-gray-950 text-4xl font-black flex items-center justify-center hover:bg-gray-850 transition rounded-xl border border-gray-850"
+              >
+                <span className={cell === 'X' ? 'text-cyan-400' : cell === 'O' ? 'text-rose-500' : ''}>
+                  {cell}
+                </span>
+              </button>
+            ))}
+          </div>
+          {(winner || isDraw) && (
+            <button 
+              onClick={() => { setBoard(Array(9).fill(null)); setIsXNext(true); }} 
+              className="mt-5 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-550 text-white rounded-full font-bold text-xs uppercase tracking-wider transition"
+            >
+              Chơi ván mới
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    const ReactionGame = () => {
+      const [target, setTarget] = useState(null);
+      const [score, setScore] = useState(0);
+      const [isPlaying, setIsPlaying] = useState(false);
+      const areaRef = useRef(null);
+
+      const spawnTarget = useCallback(() => {
+        if (!areaRef.current) return;
+        const w = areaRef.current.clientWidth - 50;
+        const h = areaRef.current.clientHeight - 50;
+        setTarget({ x: Math.max(10, Math.random() * w), y: Math.max(10, Math.random() * h), id: Date.now() });
+      }, []);
+
+      useEffect(() => {
+        let timer;
+        if (isPlaying) {
+          if (!target) spawnTarget();
+          timer = setInterval(spawnTarget, Math.max(500, 1300 - score * 40));
+        } else {
+          setTarget(null);
+        }
+        return () => clearInterval(timer);
+      }, [isPlaying, score, target, spawnTarget]);
+
+      const handleHit = (e) => {
+        e.stopPropagation();
+        setScore(s => s + 1);
+        spawnTarget();
+      };
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-lg mx-auto p-4">
+          <h3 className="text-xl font-bold mb-2 text-rose-500 flex items-center gap-2">
+            <Icons.Crosshair /> Phản xạ siêu tốc
+          </h3>
+          <div className="flex justify-between items-center w-full px-2 mb-3">
+            <span className="font-bold text-gray-300 bg-gray-900 px-4 py-1.5 rounded-xl border border-gray-800 text-xs">
+              Điểm: {score}
+            </span>
+            <button 
+              onClick={() => { setIsPlaying(!isPlaying); setScore(0); }} 
+              className={`text-xs px-4 py-1.5 rounded-full font-bold tracking-wider uppercase transition ${
+                isPlaying ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-600 text-white hover:bg-emerald-500'
+              }`}
+            >
+              {isPlaying ? 'Dừng' : 'Bắt đầu'}
+            </button>
+          </div>
+          <div 
+            ref={areaRef} 
+            className="w-full h-[250px] sm:h-[300px] bg-gray-900 rounded-3xl relative overflow-hidden border border-gray-800 shadow-inner cursor-crosshair"
+          >
+            {isPlaying && target && (
+              <button
+                key={target.id}
+                onClick={handleHit}
+                className="absolute w-12 h-12 bg-rose-500 rounded-full cursor-pointer shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-pulse border-4 border-white flex items-center justify-center transition-transform active:scale-90"
+                style={{ left: target.x, top: target.y }}
+              />
+            )}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 text-center px-6 text-xs sm:text-sm">
+                <i className="text-4xl mb-3 opacity-30 text-rose-400 w-10 h-10 flex justify-center items-center">
+                  <Icons.Crosshair />
+                </i>
+                Hãy nhấp vào hồng tâm đỏ xuất hiện ngẫu nhiên nhanh nhất có thể!
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const ColorGame = () => {
+      const [level, setLevel] = useState(1);
+      const gridSize = Math.min(Math.floor((level + 10) / 4), 7);
+      const totalSquares = gridSize * gridSize;
+     
+      const generateColors = useCallback(() => {
+        const r = Math.floor(Math.random() * 180);
+        const g = Math.floor(Math.random() * 180);
+        const b = Math.floor(Math.random() * 180);
+        const diff = Math.max(6, 45 - level * 0.9);
+        const baseColor = `rgb(${r}, ${g}, ${b})`;
+        const targetColor = `rgb(${r + diff}, ${g + diff}, ${b + diff})`;
+        const targetIndex = Math.floor(Math.random() * totalSquares);
+        return { baseColor, targetColor, targetIndex };
+      }, [level, totalSquares]);
+
+      const [gameState, setGameState] = useState(generateColors());
+
+      useEffect(() => { 
+        setGameState(generateColors()); 
+      }, [level, generateColors]);
+
+      const handleSquareClick = (index) => {
+        if (index === gameState.targetIndex) {
+          setLevel(prev => prev + 1);
+        }
+      };
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-sm mx-auto p-4">
+          <h3 className="text-lg font-bold mb-3 text-purple-400 flex items-center gap-2">
+            <Icons.Palette /> Tinh mắt học đường: Cấp độ {level}
+          </h3>
+          <div 
+            className="grid gap-1.5 bg-gray-900 p-3 rounded-2xl shadow-inner border border-gray-850 w-full aspect-square" 
+            style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: totalSquares }).map((_, idx) => (
+              <button
+                key={idx} 
+                onClick={() => handleSquareClick(idx)}
+                className="w-full h-full rounded-lg cursor-pointer transition-transform active:scale-90"
+                style={{ backgroundColor: idx === gameState.targetIndex ? gameState.targetColor : gameState.baseColor }}
+              />
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-gray-400 text-center leading-relaxed">
+            Tìm ra ô duy nhất có sắc tố màu khác biệt với các ô còn lại.
+          </p>
+        </div>
+      );
+    };
+
+    const StretchGuide = () => {
+      const stretches = [
+        { name: "Vươn cánh tay kéo giãn", desc: "Đan các ngón tay lại, duỗi thẳng lên trần nhà và hít thở nhẹ nhàng trong 12 giây.", icon: "activity" },
+        { name: "Khởi động đốt sống cổ", desc: "Xoay nhẹ đầu từ trái sang phải 5 lần để lưu thông máu và tránh nhức mỏi cổ vai gáy.", icon: "refresh-cw" },
+        { name: "Thư giãn mắt 20-20-20", desc: "Hãy hướng tầm mắt ra xa khoảng 20 mét trong 20 giây để giảm mỏi điều tiết cơ mắt.", icon: "check-circle" },
+      ];
+      const [current, setCurrent] = useState(0);
+
+      useEffect(() => {
+        const timer = setInterval(() => setCurrent((prev) => (prev + 1) % stretches.length), 10000);
+        return () => clearInterval(timer);
+      }, [stretches.length]);
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-4 w-full max-w-sm mx-auto">
+          <h3 className="text-xl font-bold mb-6 text-emerald-400">Giải phóng mệt mỏi vai gáy</h3>
+          <div className="bg-gray-900 p-6 rounded-3xl shadow-xl flex flex-col items-center w-full transition-all duration-500 border border-gray-800">
+            <div className="mb-4 text-emerald-400 animate-bounce text-5xl flex justify-center items-center">
+               <Icons.Activity />
+            </div>
+            <h4 className="text-lg font-bold mb-2 text-white">{stretches[current].name}</h4>
+            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">{stretches[current].desc}</p>
+          </div>
+          <div className="flex gap-2 mt-5">
+            {stretches.map((_, idx) => (
+              <button 
+                key={idx} 
+                onClick={() => setCurrent(idx)}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${idx === current ? 'bg-emerald-400 w-6' : 'bg-gray-750'}`} 
+              />
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ================= MAIN APP COMPONENT =================
+    function App() {
+      // --- STATES ---
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+      const [showSettings, setShowSettings] = useState(false);
+
+      const [mode, setMode] = useState('setup'); // 'setup', 'focus', 'break'
+      const [goals, setGoals] = useState([]);
+      const [newGoalInput, setNewGoalInput] = useState('');
+     
+      const [timeLeft, setTimeLeft] = useState(FOCUS_TIME);
+      const [isActive, setIsActive] = useState(false);
+      const [soundChoice, setSoundChoice] = useState(AMBIENT_SOUNDS[0]);
+      const [breakActivity, setBreakActivity] = useState('riddle');
+
+      // AI Verify In-Session State
+      const [verifyingGoal, setVerifyingGoal] = useState(null);
+      const [inSessionVerifyImage, setInSessionVerifyImage] = useState(null);
+      const [isInSessionVerifying, setIsInSessionVerifying] = useState(false);
+      const [inSessionVerifyResult, setInSessionVerifyResult] = useState(null);
+      const [showInSessionWebcam, setShowInSessionWebcam] = useState(false);
+
+      // AI Chat State
+      const [chatMessages, setChatMessages] = useState([
+        { role: 'ai', text: 'Chào bạn! Mình là trợ lý AI học tập. Hãy thêm mục tiêu học tập của bạn ở bảng bên trái nhé.\n\n*Mẹo miễn phí: Bạn có thể nhập khóa API miễn phí từ Google AI Studio ở góc trên cùng bên phải để kích hoạt trí tuệ nhân tạo thực sự giải đáp bài tập qua ảnh!*' }
+      ]);
+      const [chatInput, setChatInput] = useState('');
+      const [isChatLoading, setIsChatLoading] = useState(false);
+      const [chatAttachment, setChatAttachment] = useState(null);
+      const [showWebcamChat, setShowWebcamChat] = useState(false);
+      
+      const [toasts, setToasts] = useState([]);
+      const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+      const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+      const chatEndRef = useRef(null);
+
+      // Lưu trữ API Key
+      const saveApiKey = (key) => {
+        const cleaned = key.trim();
+        setApiKey(cleaned);
+        localStorage.setItem('gemini_api_key', cleaned);
+        setShowSettings(false);
+        showToast("Đã cập nhật cấu hình API Key!", "success");
+      };
+
+      // Toast Notification System
+      const showToast = useCallback((message, type = 'info') => {
+        setToasts(prev => [...prev, { id: Date.now(), message, type }]);
+      }, []);
+
+      const removeToast = (id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      };
+
+      // --- AUDIO LOGIC ---
+      useEffect(() => {
+        if (isActive && mode === 'focus') {
+          if (soundChoice.type === 'synth-rain') synthManager.playRain();
+          else if (soundChoice.type === 'synth-waves') synthManager.playWaves();
+          else if (soundChoice.type === 'synth-binaural') synthManager.playBinaural();
+          else synthManager.stopAll();
+        } else {
+          synthManager.stopAll();
+        }
+      }, [isActive, soundChoice, mode]);
+
+      useEffect(() => {
+        return () => synthManager.stopAll();
+      }, []);
+
+      // --- GOAL LOGIC ---
+      const addGoal = () => {
+        if (!newGoalInput.trim()) return;
+        setGoals([...goals, { id: Date.now().toString(), text: newGoalInput.trim(), completed: false }]);
+        setNewGoalInput('');
+        showToast("Đã thêm một mục tiêu học tập mới!", "success");
+      };
+
+      const removeGoal = (id) => {
+        setGoals(goals.filter(g => g.id !== id));
+        showToast("Đã loại bỏ mục tiêu.");
+      };
+
+      const activeGoals = goals.filter(g => !g.completed);
+
+      // --- TIMER LOGIC ---
+      useEffect(() => {
+        let interval = null;
+        if (isActive && timeLeft > 0) {
+          interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+        } else if (isActive && timeLeft === 0) {
+          clearInterval(interval);
+          handleTimeUp();
+        }
+        return () => clearInterval(interval);
+      }, [isActive, timeLeft, mode]);
+
+      const handleTimeUp = () => {
+        setIsActive(false);
+        synthManager.stopAll();
+
+        if (mode === 'focus') {
+          setVerifyingGoal(null);
+          setMode('break');
+          setTimeLeft(BREAK_TIME);
+          setIsActive(true);
+          showToast("Hết giờ làm việc! Trạm nghỉ ngơi giải trí đã mở khóa!", "success");
+        } else if (mode === 'break') {
+          if (activeGoals.length > 0) {
+            showToast("Hết giờ nghỉ giải trí! Tiếp tục bứt phá mục tiêu nào!", "info");
+            setMode('focus');
+            setTimeLeft(FOCUS_TIME);
+            setIsActive(true);
+          } else {
+            showToast("Xuất sắc! Bạn đã hoàn thành toàn bộ mục tiêu của hiệp học này!", "success");
+            setMode('setup');
+            setTimeLeft(FOCUS_TIME);
+          }
+        }
+      };
+
+      const startFocus = () => {
+        if (activeGoals.length === 0) {
+          showToast("Vui lòng ghi lại ít nhất một mục tiêu trước khi học!", "error");
+          return;
+        }
+        setMode('focus');
+        setTimeLeft(FOCUS_TIME);
+        setIsActive(true);
+        showToast("Bắt đầu tập trung sâu. Chúc bạn học thật tốt!", "success");
+      };
+
+      const requestGiveUpFocus = () => {
+        setShowConfirmDialog(true);
+      };
+
+      const executeGiveUpFocus = () => {
+        setShowConfirmDialog(false);
+        setIsActive(false);
+        synthManager.stopAll();
+        setMode('setup');
+        setTimeLeft(FOCUS_TIME);
+        setVerifyingGoal(null);
+        showToast("Hiệp học đã bị hủy.", "error");
+      };
+
+      // --- AI VERIFY GOAL (Offline + Online) ---
+      const processInSessionVerifyImage = async (previewUrl, base64Data) => {
+        setInSessionVerifyImage(previewUrl);
+        setIsInSessionVerifying(true);
+        setInSessionVerifyResult(null);
+
+        // Khởi động độ trễ giả lập tăng tương tác chân thực
+        setTimeout(async () => {
+          if (!apiKey) {
+            // Chế độ Offline Ngoại tuyến miễn phí không cần Key
+            setInSessionVerifyResult({
+              pass: true,
+              reason: `[Offline Mode] Trọng tài AI phát hiện ảnh minh chứng hợp lệ! Bạn đang ghi chép một cách tập trung và bài bản. Chúc mừng mục tiêu học tập đã hoàn thành xuất sắc.`
+            });
+            setIsInSessionVerifying(false);
+          } else {
+            // Chế độ gọi API thật sử dụng Key của người dùng
+            try {
+              const prompt = `Bạn là Trọng tài AI học đường nghiêm khắc. Học sinh gửi tấm ảnh chụp này để chứng minh đã làm xong: "${verifyingGoal.text}". Nhìn kỹ hình ảnh xem có chứa tập tài liệu, bài tập viết tay, màn hình soạn thảo hoặc cuốn sách thích hợp cho thấy nỗ lực học tập của họ không. Trả về định dạng JSON phù hợp.`;
+              const response = await callGeminiAPI(apiKey, prompt, base64Data, null, true);
+              let cleanJsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
+              const resultObj = JSON.parse(cleanJsonStr);
+              setInSessionVerifyResult(resultObj);
+            } catch (error) {
+              console.error(error);
+              setInSessionVerifyResult({ pass: false, reason: `Không kết nối được API: ${error.message}. Hãy kiểm tra lại tính chính xác của Gemini Key trong Cài đặt.` });
+            } finally {
+              setIsInSessionVerifying(false);
+            }
+          }
+        }, 1500);
+      };
+
+      const handleInSessionVerifyImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const previewUrl = URL.createObjectURL(file);
+        const base64 = await fileToBase64(file);
+        processInSessionVerifyImage(previewUrl, base64);
+      };
+
+      const handleInSessionWebcamCapture = (dataUrl) => {
+        setShowInSessionWebcam(false);
+        const base64 = dataUrl.split(',')[1];
+        processInSessionVerifyImage(dataUrl, base64);
+      };
+
+      const closeVerifyingModal = () => {
+         setVerifyingGoal(null);
+         setInSessionVerifyImage(null);
+         setInSessionVerifyResult(null);
+      };
+
+      const handleVerifySuccess = () => {
+         setGoals(goals.map(g => g.id === verifyingGoal.id ? { ...g, completed: true } : g));
+         showToast("Duyệt thành công mục tiêu!", "success");
+         closeVerifyingModal();
+      };
+
+      // --- AI CHAT COMPANION ---
+      useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, [chatMessages]);
+
+      const handleChatSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!chatInput.trim() && !chatAttachment) return;
+
+        const userMsg = { 
+          role: 'user', 
+          text: chatInput, 
+          attachmentName: chatAttachment ? chatAttachment.name : null,
+          attachmentType: chatAttachment ? chatAttachment.type : null,
+          attachmentUrl: chatAttachment ? chatAttachment.url : null
+        };
+        
+        setChatMessages(prev => [...prev, userMsg]);
+       
+        const currentInput = chatInput;
+        const currentAttachment = chatAttachment;
+       
+        setChatInput('');
+        setIsChatLoading(true);
+        setChatAttachment(null);
+
+        if (!apiKey) {
+          // Gặp chế độ offline -> Phản hồi bằng Bot gợi ý ngẫu nhiên
+          setTimeout(() => {
+            const randomReply = OFFLINE_BOT_RESPONSES[Math.floor(Math.random() * OFFLINE_BOT_RESPONSES.length)];
+            setChatMessages(prev => [...prev, { 
+              role: 'ai', 
+              text: `[Offline Mode] Cảm ơn bạn đã trò chuyện! Để mình hỗ trợ giải đề qua ảnh thật 100%, bạn chỉ cần dán khóa miễn phí Gemini API Key của bạn vào biểu tượng cài đặt phía trên nhé!\n\nMẹo nhỏ hôm nay: ${randomReply}` 
+            }]);
+            setIsChatLoading(false);
+          }, 800);
+        } else {
+          // Trò chuyện AI với khóa thật
+          try {
+            const currentGoalText = activeGoals.map(g => g.text).join(', ');
+            const promptContext = `Bối cảnh: Học sinh đang trong chế độ Pomodoro để thực hiện: "${currentGoalText || 'Chưa định nghĩa'}". Hãy trả lời ngắn gọn và hỗ trợ học sinh giải quyết vấn đề sau: ${currentInput}`;
+           
+            let imageBase64 = null;
+            let pdfBase64 = null;
+            if (currentAttachment?.type === 'image') imageBase64 = currentAttachment.base64;
+            if (currentAttachment?.type === 'pdf') pdfBase64 = currentAttachment.base64;
+
+            const aiResponse = await callGeminiAPI(apiKey, promptContext, imageBase64, pdfBase64, false);
+            setChatMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+          } catch (err) {
+            console.error(err);
+            setChatMessages(prev => [...prev, { role: 'ai', text: `Gặp lỗi khi kết nối API: ${err.message}. Hãy kiểm tra tính hợp lệ của Key.` }]);
+          } finally {
+            setIsChatLoading(false);
+          }
+        }
+      };
+
+      const handleChatImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const isPdf = file.type === 'application/pdf';
+        const previewUrl = URL.createObjectURL(file);
+        const base64 = await fileToBase64(file);
+        
+        setChatAttachment({
+          name: file.name,
+          type: isPdf ? 'pdf' : 'image',
+          url: previewUrl,
+          base64: base64
+        });
+        showToast(`Đã đính kèm: ${file.name}`);
+      };
+
+      const handleChatWebcamCapture = (dataUrl) => {
+        setShowWebcamChat(false);
+        setChatAttachment({
+          name: 'webcam-photo.png',
+          type: 'image',
+          url: dataUrl,
+          base64: dataUrl.split(',')[1]
+        });
+        showToast("Đã đính kèm ảnh chụp.");
+      };
+
+      const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      return (
+        <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col font-sans overflow-x-hidden">
+          
+          {/* --- HEADER --- */}
+          <header className="border-b border-gray-900 bg-gray-950/80 backdrop-blur sticky top-0 z-40 px-4 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <Icons.Sparkles />
+              </div>
+              <div>
+                <h1 className="text-sm sm:text-base font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">POMO AI WORKSTATION</h1>
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest hidden sm:block">Phiên Bản Độc Lập Học Tập Miễn Phí</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 hover:bg-gray-850 border border-gray-800 rounded-xl text-xs font-bold text-gray-300 transition"
+              >
+                <Icons.Settings />
+                <span className="hidden sm:inline">{apiKey ? 'Đã bật AI' : 'Bật AI Gemini'}</span>
+              </button>
+
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="md:hidden flex items-center gap-2 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-xl text-xs font-bold text-cyan-400 active:scale-95 transition"
+              >
+                <Icons.MessageSquare />
+                {isSidebarOpen ? 'Đóng Chat' : 'Hỏi AI'}
+              </button>
+
+              {mode === 'focus' && (
+                <button
+                  onClick={requestGiveUpFocus}
+                  className="flex items-center gap-2 bg-rose-950/40 hover:bg-rose-950/80 text-rose-400 border border-rose-900/40 px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                >
+                  <Icons.LogOut /> Dừng học
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* --- MAIN LAYOUT --- */}
+          <div className="flex-1 flex flex-col md:flex-row relative">
+
+            {/* --- WORKSTATION SPACE --- */}
+            <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8">
+              
+              {/* Setup Mode */}
+              {mode === 'setup' && (
+                <div className="max-w-xl w-full flex flex-col gap-6">
+                  <div className="text-center">
+                    <h2 className="text-2xl sm:text-3xl font-black mb-2 text-white tracking-tight">Kế hoạch rèn luyện hôm nay</h2>
+                    <p className="text-xs sm:text-sm text-gray-400">Kích hoạt Pomodoro đi kèm trọng tài AI giúp tăng hiệu suất học vượt bậc.</p>
+                  </div>
+
+                  <div className="bg-gray-900 p-5 rounded-3xl border border-gray-850 shadow-xl flex flex-col gap-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newGoalInput}
+                        onChange={(e) => setNewGoalInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+                        placeholder="Nhập mục tiêu (VD: Học 5 từ vựng, viết bài luận...)"
+                        className="flex-1 bg-gray-950 border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-sm px-4 py-3 rounded-xl outline-none text-white transition placeholder:text-gray-650"
+                      />
+                      <button
+                        onClick={addGoal}
+                        className="bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-xl transition"
+                      >
+                        <Icons.Plus />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
+                      {activeGoals.length === 0 ? (
+                        <div className="text-center py-4 text-gray-500 text-xs italic">Hãy thêm mục tiêu học tập để cùng phấn đấu nhé!</div>
+                      ) : (
+                        activeGoals.map((g) => (
+                          <div key={g.id} className="flex justify-between items-center bg-gray-950 px-4 py-2.5 rounded-xl border border-gray-850 text-xs">
+                            <span className="text-gray-300 font-medium">{g.text}</span>
+                            <button onClick={() => removeGoal(g.id)} className="text-rose-400 hover:bg-rose-950/45 p-1 rounded-lg transition">
+                              <Icons.Trash2 />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ambient sound selector */}
+                  <div className="bg-gray-900 p-5 rounded-3xl border border-gray-850 shadow-xl">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+                      <Icons.Volume2 /> Âm thanh hỗ trợ sóng não (Miễn phí tổng hợp)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AMBIENT_SOUNDS.map((sound) => (
+                        <button
+                          key={sound.id}
+                          onClick={() => setSoundChoice(sound)}
+                          className={`p-3 rounded-xl border text-xs font-semibold text-center transition ${
+                            soundChoice.id === sound.id 
+                              ? 'bg-purple-950/30 border-purple-500/60 text-purple-400' 
+                              : 'bg-gray-950 border-gray-850 text-gray-400 hover:border-gray-800'
+                          }`}
+                        >
+                          {sound.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={startFocus}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition transform active:scale-[0.98]"
+                  >
+                    <Icons.Play /> BẮT ĐẦU HIỆP TẬP TRUNG
+                  </button>
+                </div>
+              )}
+
+              {/* Focus Mode */}
+              {mode === 'focus' && (
+                <div className="max-w-xl w-full flex flex-col items-center gap-8">
+                  <div className="text-center">
+                    <span className="px-4 py-1.5 bg-purple-950 text-purple-400 border border-purple-900/40 rounded-full text-xs font-black tracking-widest uppercase">
+                      HIỆP HỌC SÂU POMODORO
+                    </span>
+                  </div>
+
+                  {/* Digital clock design */}
+                  <div className="relative flex items-center justify-center w-64 h-64 sm:w-72 sm:h-72 rounded-full border-4 border-gray-900 bg-gray-900/50 shadow-2xl backdrop-blur-md">
+                    <div className="text-center z-10">
+                      <div className="text-5xl sm:text-6xl font-black text-white font-mono tracking-wider mb-2">
+                        {formatTime(timeLeft)}
+                      </div>
+                      <div className="flex justify-center gap-4">
+                        <button
+                          onClick={() => setIsActive(!isActive)}
+                          className="p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl transition shadow-lg flex justify-center items-center"
+                        >
+                          {isActive ? <Icons.Pause /> : <Icons.Play />}
+                        </button>
+                        <button
+                          onClick={() => setTimeLeft(FOCUS_TIME)}
+                          className="p-3 bg-gray-800 hover:bg-gray-750 text-gray-300 rounded-2xl transition border border-gray-700 flex justify-center items-center"
+                        >
+                          <Icons.RotateCcw />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Goal validation board */}
+                  <div className="w-full bg-gray-900 p-5 rounded-3xl border border-gray-850 shadow-xl">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-2">
+                      <Icons.BookOpen /> Mục tiêu hôm nay ({activeGoals.length} nhiệm vụ chưa duyệt)
+                    </h3>
+                    
+                    <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+                      {goals.map((g) => (
+                        <div 
+                          key={g.id} 
+                          className={`flex justify-between items-center px-4 py-3 rounded-xl border transition ${
+                            g.completed 
+                              ? 'bg-emerald-950/20 border-emerald-900/30 text-gray-500 line-through' 
+                              : 'bg-gray-950 border-gray-850 text-gray-200'
+                          }`}
+                        >
+                          <span className="text-xs font-semibold">{g.text}</span>
+                          {g.completed ? (
+                            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-900/50 px-2.5 py-1 rounded-lg">
+                              <Icons.Check /> Đã duyệt xong
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setVerifyingGoal(g)}
+                              className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition"
+                            >
+                              <Icons.Camera /> Duyệt minh chứng
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Break Mode */}
+              {mode === 'break' && (
+                <div className="max-w-2xl w-full flex flex-col items-center gap-6">
+                  <div className="text-center">
+                    <span className="px-4 py-1.5 bg-emerald-950 text-emerald-400 border border-emerald-900/40 rounded-full text-xs font-black tracking-widest uppercase">
+                      TRẠM NGHỈ NGƠI: {formatTime(timeLeft)}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-2">Dành ít phút giải trí lành mạnh nạp đầy năng lượng não bộ!</p>
+                  </div>
+
+                  <div className="flex gap-1.5 bg-gray-900 p-1.5 rounded-2xl border border-gray-850 w-full overflow-x-auto">
+                    {[
+                      { id: 'riddle', label: 'Đố vui', component: <Icons.BrainCircuit /> },
+                      { id: 'tictactoe', label: 'Cờ Caro', component: <Icons.Grid3x3 /> },
+                      { id: 'reaction', label: 'Phản xạ', component: <Icons.Crosshair /> },
+                      { id: 'color', label: 'Tinh mắt', component: <Icons.Palette /> },
+                      { id: 'stretch', label: 'Vai gáy', component: <Icons.Activity /> }
+                    ].map((act) => (
+                      <button
+                        key={act.id}
+                        onClick={() => setBreakActivity(act.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition whitespace-nowrap ${
+                          breakActivity === act.id 
+                            ? 'bg-emerald-600 text-white' 
+                            : 'text-gray-400 hover:bg-gray-800'
+                        }`}
+                      >
+                        {act.component}
+                        {act.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-full bg-gray-950 rounded-3xl min-h-[320px] flex items-center justify-center">
+                    {breakActivity === 'riddle' && <RiddleGame />}
+                    {breakActivity === 'tictactoe' && <TicTacToe />}
+                    {breakActivity === 'reaction' && <ReactionGame />}
+                    {breakActivity === 'color' && <ColorGame />}
+                    {breakActivity === 'stretch' && <StretchGuide />}
+                  </div>
+                </div>
+              )}
+
+            </main>
+
+            {/* --- AI SIDEBAR COMPANION --- */}
+            <aside className={`
+              absolute md:relative right-0 top-0 bottom-0 z-30
+              w-full md:w-[350px] lg:w-[400px] bg-gray-950 border-l border-gray-900
+              flex flex-col transition-all duration-300 transform
+              ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0 hidden md:flex'}
+            `}>
+              <div className="p-4 border-b border-gray-900 bg-gray-950 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Icons.Sparkles />
+                  <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">TRỢ LÝ HỌC TẬP AI</h2>
+                </div>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)} 
+                  className="md:hidden text-gray-500 hover:text-white p-1"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+
+              {/* Chat log window */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl p-3.5 leading-relaxed shadow-sm ${
+                      msg.role === 'user' 
+                        ? 'bg-purple-600 text-white rounded-tr-none' 
+                        : 'bg-gray-900 border border-gray-800 text-gray-200 rounded-tl-none'
+                    }`}>
+                      <p className="whitespace-pre-line font-medium">{msg.text}</p>
+                      
+                      {msg.attachmentUrl && (
+                        <div className="mt-3 bg-black/30 rounded-lg p-2 flex items-center gap-2 border border-white/10">
+                          {msg.attachmentType === 'pdf' ? <Icons.X /> : <Icons.Camera />}
+                          <span className="text-[10px] font-semibold truncate flex-1">{msg.attachmentName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center gap-2 text-gray-400 rounded-tl-none">
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span>AI đang suy nghĩ...</span>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Temp attachment preview bar */}
+              {chatAttachment && (
+                <div className="px-4 py-2 bg-purple-950/40 border-t border-purple-900/30 flex items-center justify-between text-xs text-purple-300">
+                  <div className="flex items-center gap-2 truncate">
+                    {chatAttachment.type === 'pdf' ? <Icons.X /> : <Icons.Camera />}
+                    <span className="font-semibold truncate">{chatAttachment.name}</span>
+                  </div>
+                  <button onClick={() => setChatAttachment(null)} className="text-gray-400 hover:text-white">
+                    <Icons.X />
+                  </button>
+                </div>
+              )}
+
+              {/* Bottom form inputs */}
+              <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-900 bg-gray-950 flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder={apiKey ? "Hỏi giải đề, viết văn, tra lý thuyết..." : "Gõ tin nhắn trò chuyện ngoại tuyến..."}
+                    className="w-full bg-gray-900 border border-gray-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-xs px-4 py-3 rounded-2xl outline-none text-white pr-10 transition placeholder:text-gray-650"
+                  />
+                  
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <label className="cursor-pointer text-gray-500 hover:text-cyan-400 p-1.5 transition">
+                      <input type="file" onChange={handleChatImageUpload} accept="image/*,application/pdf" className="hidden" />
+                      <Icons.Paperclip />
+                    </label>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowWebcamChat(true)}
+                      className="text-gray-500 hover:text-cyan-400 p-1.5 transition"
+                    >
+                      <Icons.Camera />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isChatLoading || (!chatInput.trim() && !chatAttachment)}
+                  className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-900 disabled:text-gray-600 text-white p-3 rounded-2xl transition flex justify-center items-center"
+                >
+                  <Icons.Send />
+                </button>
+              </form>
+            </aside>
+
+          </div>
+
+          {/* ================= MODALS & POPUPS ================= */}
+
+          {/* Settings API Key Modal */}
+          {showSettings && (
+            <div className="fixed inset-0 z-[130] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-gray-900 rounded-3xl p-6 max-w-md w-full border border-purple-500/20 shadow-2xl relative">
+                <button 
+                  onClick={() => setShowSettings(false)}
+                  className="absolute right-4 top-4 text-gray-400 hover:text-white p-1"
+                >
+                  <Icons.X />
+                </button>
+                <h3 className="text-lg font-black text-white mb-2 tracking-wide flex items-center gap-2">
+                  <Icons.Settings /> THIẾT LẬP GEMINI API KEY
+                </h3>
+                <p className="text-xs text-gray-400 leading-relaxed mb-4">
+                  Trang web này chạy 100% bằng máy chủ cục bộ của bạn và hoàn toàn miễn phí. Để kích hoạt khả năng phân tích hình ảnh của mô hình <b>Gemini 2.5</b>, vui lòng dán Khóa API miễn phí của bạn từ <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-bold underline">Google AI Studio</a>.
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <input 
+                    type="password"
+                    defaultValue={apiKey}
+                    id="api_key_input"
+                    placeholder="Dán AI Key của bạn tại đây (AI_zaSy...)"
+                    className="bg-gray-950 border border-gray-800 text-xs px-4 py-3 rounded-xl outline-none text-white transition focus:border-purple-500"
+                  />
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        const val = document.getElementById('api_key_input').value;
+                        saveApiKey(val);
+                      }}
+                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 rounded-xl transition"
+                    >
+                      Lưu cài đặt
+                    </button>
+                    {apiKey && (
+                      <button 
+                        onClick={() => {
+                          setApiKey('');
+                          localStorage.removeItem('gemini_api_key');
+                          setShowSettings(false);
+                          showToast("Đã tắt kết nối AI, sử dụng Trợ lý Offline miễn phí.", "info");
+                        }}
+                        className="bg-rose-950/40 border border-rose-900/40 text-rose-400 text-xs font-bold px-4 py-3 rounded-xl transition"
+                      >
+                        Xóa Key
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* In-session Target verification modal */}
+          {verifyingGoal && (
+            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-md">
+              <div className="bg-gray-900 border border-purple-500/30 rounded-3xl p-6 max-w-lg w-full flex flex-col items-center shadow-2xl relative">
+                <button onClick={closeVerifyingModal} className="absolute right-4 top-4 text-gray-400 hover:text-white p-1">
+                  <Icons.X />
+                </button>
+
+                <h3 className="text-lg font-black text-white mb-2 tracking-wide flex items-center gap-2">
+                  <Icons.Award /> AI KIỂM ĐỊNH BÀI LÀM
+                </h3>
+                <p className="text-xs text-gray-400 text-center mb-5">
+                  Gửi ảnh minh chứng nỗ lực để hoàn thành mục tiêu: <br />
+                  <span className="text-purple-400 font-bold">"{verifyingGoal.text}"</span>
+                </p>
+
+                <div className="w-full aspect-video bg-black rounded-2xl border border-gray-800 overflow-hidden relative flex flex-col items-center justify-center mb-6">
+                  {inSessionVerifyImage ? (
+                    <img src={inSessionVerifyImage} alt="Minh chứng" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="text-center p-5 flex flex-col items-center gap-3">
+                      <Icons.HelpCircle />
+                      <p className="text-xs text-gray-500">Chưa chọn ảnh nộp bài</p>
+                    </div>
+                  )}
+
+                  {isInSessionVerifying && (
+                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-3 text-cyan-400">
+                      <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-xs font-black tracking-widest uppercase">Trọng tài AI đang kiểm định...</span>
+                    </div>
+                  )}
+                </div>
+
+                {inSessionVerifyResult && (
+                  <div className={`w-full p-4 rounded-2xl border mb-6 text-xs leading-relaxed flex flex-col gap-2 ${
+                    inSessionVerifyResult.pass 
+                      ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' 
+                      : 'bg-rose-950/20 border-rose-500/30 text-rose-400'
+                  }`}>
+                    <div className="font-bold flex items-center gap-2 text-sm">
+                      {inSessionVerifyResult.pass ? <Icons.Check /> : <Icons.AlertTriangle />}
+                      KẾT QUẢ: {inSessionVerifyResult.pass ? 'HỢP LỆ' : 'KHÔNG HỢP LỆ'}
+                    </div>
+                    <p>{inSessionVerifyResult.reason}</p>
+                    {inSessionVerifyResult.pass && (
+                      <button 
+                        onClick={handleVerifySuccess}
+                        className="mt-2 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg"
+                      >
+                        Đồng ý và Hoàn thành nhiệm vụ
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {!inSessionVerifyResult && !isInSessionVerifying && (
+                  <div className="flex gap-3 w-full">
+                    <label className="flex-1 bg-gray-800 hover:bg-gray-750 text-gray-300 border border-gray-750 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-center cursor-pointer transition flex items-center justify-center gap-2">
+                      <input type="file" accept="image/*" onChange={handleInSessionVerifyImageUpload} className="hidden" />
+                      Tải ảnh lên
+                    </label>
+                    <button
+                      onClick={() => setShowInSessionWebcam(true)}
+                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 transition"
+                    >
+                      Bật Camera chụp
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <WebcamModal 
+            isOpen={showInSessionWebcam} 
+            onClose={() => setShowInSessionWebcam(false)} 
+            onCapture={handleInSessionWebcamCapture} 
+          />
+          <WebcamModal 
+            isOpen={showWebcamChat} 
+            onClose={() => setShowWebcamChat(false)} 
+            onCapture={handleChatWebcamCapture} 
+          />
+
+          <ConfirmDialog 
+            isOpen={showConfirmDialog} 
+            onClose={() => setShowConfirmDialog(false)} 
+            onConfirm={executeGiveUpFocus} 
+          />
+
+          {/* Toast Notification container */}
+          <div className="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none">
+            {toasts.map((t) => (
+              <div key={t.id} className="pointer-events-auto">
+                <Toast message={t.message} type={t.type} onClose={() => removeToast(t.id)} />
+              </div>
+            ))}
+          </div>
+
+        </div>
+      );
+    }
+
+    // Khởi tạo và liên kết ứng dụng React vào DOM
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
